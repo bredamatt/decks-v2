@@ -19,5 +19,5 @@ cumulus_based = true
   [parachains.collator]
   name = "decks-collator-01"
   image = "localhost:5001/parachain:latest"
-  command = "parachain"
+  command = "parachain-node"
   args = ["-lparachain=debug"]
