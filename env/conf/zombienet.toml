@@ -1,0 +1,23 @@
+[settings]
+timeout = 1000
+enable_tracing = false
+
+[relaychain]
+default_image = "paritypr/polkadot-debug:master"
+chain = "local-test"
+
+  [[relaychain.nodes]]
+  name = "alice"
+
+  [[relaychain.nodes]]
+  name = "bob"
+
+[[parachains]]
+id = 100
+cumulus_based = true
+
+  [parachains.collator]
+  name = "decks-collator-01"
+  image = "localhost:5001/parachain:latest"
+  command = "parachain"
+  args = ["-lparachain=debug"]
