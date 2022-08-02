@@ -1,8 +1,9 @@
 use crate as pallet_dex;
 use frame_support::{parameter_types, PalletId};
 
-use frame_support::traits::{ConstU16, ConstU64};
+use frame_support::traits::{ConstU16, ConstU32, ConstU64, ConstU128};
 use frame_system as system;
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -28,7 +29,7 @@ frame_support::construct_runtime!(
 );
 
 pub type AssetId = u32;
-pub type AccountId = u64;
+pub type AccountId = u128;
 pub type Balance = u128;
 
 impl system::Config for Test {
@@ -42,14 +43,14 @@ impl system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = u128;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -88,17 +89,23 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-	pub const Decks: PalletId = PalletId(*b"decks");
-	pub const TokenMinimumBalance: u32 = 1;
+	pub const Decks: PalletId = PalletId(*b"dotdecks");
+	pub const TokenMinimumBalance: u32 = 1; // Must be greater than 0 (existential deposit)
+	pub const TokenDecimals: u8 = 12;
 }
 
 impl pallet_dex::Config for Test {
 	type Event = Event;
 	type AssetId = AssetId;
-	type Assets = Assets;
+	type Tokens = Assets;
 	type PalletId = Decks;
-	type TokenMinimumBalance = TokenMinimumBalance;
-	type Currency = Balances;
+	type LpTokenMinimumBalance = TokenMinimumBalance;
+	type LpTokenDecimals = TokenDecimals;
+	type NativeCurrency = Balances;
+	
+	fn exists(id: Self::AssetId) -> bool {
+		Assets::maybe_total_supply(id).is_some()
+	}
 }
 
 // Build genesis storage according to the mock runtime.
