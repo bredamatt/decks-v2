@@ -95,24 +95,43 @@ pub mod pallet {
 		fn create_liquidity_pool_token(pair: (AssetIdOf<T>, AssetIdOf<T>)) -> Result<AssetIdOf<T>, DispatchError> {
 			let lp_token_id = <GetLpTokenId<T>>::get().unwrap_or_else(|| AssetIdOf::<T>::max_value());
 			// println!("{:?}", lp_token_id);
-
 			// Check if the liquidity pool token already exits
 			ensure!(!T::exists(lp_token_id), Error::<T>::TokenAlreadyExists);
-	
 			// Create asset
 			let dex_id: T::AccountId = T::PalletId::get().into_account_truncating();
 			T::Tokens::create(lp_token_id, dex_id.clone(), true, T::LpTokenMinimumBalance::get())?;
-	
 			// Set asset metadata based on existing assets
 			let mut asset_0 = T::Tokens::symbol(&pair.0);
 			let asset_1 = T::Tokens::symbol(&pair.1);
 			asset_0.extend(asset_1);
 			T::Tokens::set(lp_token_id, &dex_id, asset_0.clone(), asset_0, T::LpTokenDecimals::get())?;
-	
 			// Set next value to be used
 			<GetLpTokenId<T>>::set(Some(lp_token_id - 1u32.into()));
-	
 			Ok(lp_token_id)
+		}
+
+		pub fn add_liquidity(
+			&self,
+			amounts: (BalanceOf<T>, BalanceOf<T>),
+			sender: &AccountIdOf<T>,
+		) -> DispatchResult {
+			let issuance = T::Tokens::total_issuance(self.id);
+			if issuance == <BalanceOf<T>>::default() {
+				T::Tokens::mint_into(self.id, sender, amounts.0)?;
+				T::Tokens::teleport(self.pair.0, sender, &self.account, amounts.0)?;
+				T::Tokens::teleport(self.pair.1, sender, &self.account, amounts.1)?;
+			} else {
+				let balances = (
+					T::Tokens::balance(self.pair.0, &self.account),
+					T::Tokens::balance(self.pair.1, &self.account),
+				);
+				let amount_1 = amounts.0 * (balances.1 / balances.0);
+				let to_mint = amounts.0 * (issuance / balances.0);
+				T::Tokens::mint_into(self.id, sender, to_mint)?;
+				T::Tokens::teleport(self.pair.0, &sender, &self.account, amounts.0)?;
+				T::Tokens::teleport(self.pair.1, &sender, &self.account, amounts.1)?;
+			}
+			Ok(())
 		}
 	}
 
