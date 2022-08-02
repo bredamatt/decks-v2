@@ -18,6 +18,9 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// To deal with Assets
 		type Tokens: Inspect<Self::AccountId> + Mutate<Self::AccountId> + Transfer<Self::AccountId>;
+
+		/// The minmium balance
+		type MinimumBalance: Get<u128>;
 	}
 
 	type AnAssetId<T: Config> = <T::Tokens as Inspect<T::AccountId>>::AssetId;
@@ -31,6 +34,25 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage
 	#[pallet::storage]
 	pub type LiquidityPool<T> = StorageValue<_, [u8; 16]>;
+
+	#[pallet::storage]
+	pub type Balances<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u128>;
+
+	#[pallet::genesis_config]
+	#[cfg_attr(feature = "std", derive(frame_support::DefaultNoBound))]
+	pub struct GenesisConfig<T: Config> {
+		pub balances: Vec<(T::AccountId, u128)>,
+	}
+  
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			for (who, initial_balance) in &self.balances {
+				assert!(*initial_balance > T::MinimumBalance::get(), "Initial balance too low");
+				Balances::<T>::insert(who, initial_balance);
+			}
+		}	
+	}
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
