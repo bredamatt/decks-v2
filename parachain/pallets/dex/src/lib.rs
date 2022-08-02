@@ -21,6 +21,7 @@ pub mod pallet {
 	}
 
 	type AnAssetId<T: Config> = <T::Tokens as Inspect<T::AccountId>>::AssetId;
+	type BalanceOf<T: Config> = <T::Tokens as Inspect<T::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -56,6 +57,7 @@ pub mod pallet {
 		pub fn create_pool(
 			origin: OriginFor<T>,
 			pair: (AnAssetId<T>, AnAssetId<T>),
+			amts: (BalanceOf<T>, BalanceOf<T>),
 		) -> DispatchResult {
 			Ok(())	
 		}
