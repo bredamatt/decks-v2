@@ -1,5 +1,5 @@
 use cumulus_primitives_core::ParaId;
-use parachain_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
+use parachain_runtime::{AccountId, AuraId, AssetsConfig, Signature, EXISTENTIAL_DEPOSIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -222,7 +222,7 @@ fn testnet_genesis(
 				assets: vec![
 					(1u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
 					(2u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
-					(3u, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
+					(3u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
 				],
 				metadata: vec![
 					(1u8, b"WATER".to_vec(), b"WAT".to_vec(), 8u8),
