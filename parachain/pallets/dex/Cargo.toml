@@ -24,6 +24,7 @@ pallet-kitties = { path = "../kitties", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.26" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.26" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.26" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.26" }
 
 [dev-dependencies]
 serde = { version = "1.0.132" }
@@ -45,5 +46,6 @@ std = [
     "pallet-assets/std",
 	"pallet-balances/std",
 	"pallet-kitties/std",
+	"sp-runtime/std",
 ]
 try-runtime = [ "frame-support/try-runtime" ]
