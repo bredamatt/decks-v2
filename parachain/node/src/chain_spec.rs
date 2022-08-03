@@ -217,6 +217,7 @@ fn testnet_genesis(
 		polkadot_xcm: parachain_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
+		// Ideally this is replicated in pallet mocks - this way we can start from genesis for every pallet's test and operate from that
 		assets: {
 			AssetsConfig {
 				assets: vec![
@@ -226,7 +227,7 @@ fn testnet_genesis(
 				],
 				metadata: vec![
 					(1u8, b"TOKEN_A".to_vec(), b"TKA".to_vec(), 8u8),
-					(2u8, b"TOKEN_B".to_vec(), b"TKB".to_vec(), 8u8),
+					(2u8, b"TOKEN_B".to_vec(), b"TKB".to_fvec(), 8u8),
 					(3u8, b"TOKA_TOKB".to_vec(), b"TAB".to_vec(), 8u8),
 				],
 				accounts: vec![

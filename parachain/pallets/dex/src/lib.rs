@@ -28,9 +28,11 @@ pub mod pallet {
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
+	/// Needed to inspect an token`
 	type AssetIdOf<T> =
 		<<T as Config>::Tokens as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 
+	/// Needed to insepct a token
 	type BalanceOf<T> =
 		<<T as Config>::Tokens as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 		
@@ -71,6 +73,8 @@ pub mod pallet {
 
 		type PalletId: Get<PalletId>;
 
+		type NativeTokenId: Get<Self::AssetId>;
+
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
 		fn exists(id: Self::AssetId) -> bool;
@@ -93,17 +97,24 @@ pub mod pallet {
 		}
 
 		fn create_liquidity_pool_token(pair: (AssetIdOf<T>, AssetIdOf<T>)) -> Result<AssetIdOf<T>, DispatchError> {
+			// Check if we have a liquidity pool token id
 			let lp_token_id = <GetLpTokenId<T>>::get().unwrap_or_else(|| AssetIdOf::<T>::max_value());
-			// println!("{:?}", lp_token_id);
+
 			// Check if the liquidity pool token already exits
 			ensure!(!T::exists(lp_token_id), Error::<T>::TokenAlreadyExists);
-			// Create asset
+
+			// Create token for liquidity pool
 			let dex_id: T::AccountId = T::PalletId::get().into_account_truncating();
+
 			T::Tokens::create(lp_token_id, dex_id.clone(), true, T::LpTokenMinimumBalance::get())?;
+
 			// Set asset metadata based on existing assets
 			let mut asset_0 = T::Tokens::symbol(&pair.0);
+
 			let asset_1 = T::Tokens::symbol(&pair.1);
+
 			asset_0.extend(asset_1);
+
 			T::Tokens::set(lp_token_id, &dex_id, asset_0.clone(), asset_0, T::LpTokenDecimals::get())?;
 			// Set next value to be used
 			<GetLpTokenId<T>>::set(Some(lp_token_id - 1u32.into()));
@@ -135,28 +146,161 @@ pub mod pallet {
 		}
 	}
 
+	/// Used to make sure pools of two tokens can only exist once
+	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Pair<T: Config>(PhantomData<T>);
+
+	/// Can use inspect ()
+	impl<T: Config> Pair<T> {
+		pub fn new_pair(
+			token_0: AssetIdOf<T>,
+			token_1: AssetIdOf<T>,
+		) -> (AssetIdOf<T>, AssetIdOf<T>) {
+			if token_1 < token_0 {
+				(token_1, token_0)
+			} else {
+				(token_0, token_1)
+			}
+		}
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	/// Can be used to get the asset id of a liquidity poo ltoken
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
 	pub(super) type GetLpTokenId<T: Config> = StorageValue<_, AssetIdOf<T>>;
 
+	#[pallet::storage]
+	pub(super) type LiquidityPools<T: Config> = StorageMap<_, Twox64Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
+	
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {}
+	pub enum Event<T: Config> {
+		/// For when an LP is created (token_0, token_1)
+		LiquidityPoolCreated(AssetIdOf<T>, AssetIdOf<T>),
+		/// For when liquidity is added to pre-existing pool (token_0, amt_0, token_1, amt_1)
+		LiquidityAdded(AssetIdOf<T>,  BalanceOf<T>, AssetIdOf<T>, BalanceOf<T>),
+	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The liquidity pool token already exists.
 		TokenAlreadyExists,
+		/// Input the same token twice when ading liquidity
+		IdenticalTokens,
+		/// Sent a Zero value
+		AmountZero,
+		/// Sent invalid amount
+		InvalidAmount,
+		/// Sender has too few funds
+		InsufficientBalance,
+		/// Sent a non-existent token
+		NonExistentToken,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
-}
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(10_000)]
+		pub fn add_liquidity(
+			origin: OriginFor<T>,
+			amount_0: BalanceOf<T>,
+			token_0: AssetIdOf<T>,
+			amount_1: BalanceOf<T>,
+			token_1: AssetIdOf<T>,
+		) -> DispatchResult {
+
+			// Make sure extrinsic is signed
+			let sender = ensure_signed(origin)?;
+
+			// Input check
+			ensure!(token_0 != token_1, Error::<T>::IdenticalTokens); // Make sure we don't input the same token twice
+			ensure!(amount_0 > <BalanceOf<T>>::default(), Error::<T>::AmountZero); // Make sure we don't input zero amount
+			ensure!(amount_1 > <BalanceOf<T>>::default(), Error::<T>::AmountZero); // Make sure we don't input zero amount
+			ensure!(amount_0 != <BalanceOf<T>>::default() && amount_1 != <BalanceOf<T>>::default(), Error::<T>::InvalidAmount); // Check if either amount valid
+			ensure!(T::exists(token_0) && T::exists(token_1), Error::<T>::NonExistentToken); // Ensure token exists
+			
+			// Ensure sender has sufficient balance
+			ensure!(Self::balance(token_0, &sender) >= amount_0
+				&& Self::balance(token_1, &sender) >= amount_1,
+				Error::<T>::InsufficientBalance
+			); 
+
+			// Create pair from supplied tokens
+			let pair = Pair::<T>::new_pair(token_0, token_1);
+
+			// Get/create liquidity pool
+			let lp_key = (pair.0, pair.1);
+
+			let pool = match <LiquidityPools<T>>::get(lp_key) {
+				Some(pool) => Result::<LiquidityPool<T>, DispatchError>::Ok(pool),
+				None => {
+					// Create new pool, save and emit event
+					let pool = <LiquidityPool<T>>::new_liquidity_pool(lp_key)?;
+					<LiquidityPools<T>>::set(lp_key, Some(pool.clone()));
+					Self::deposit_event(Event::LiquidityPoolCreated(pair.0, pair.1));
+					Ok(pool)
+				},
+			}?;
+
+			// Add liquidity
+			pool.add_liquidity((amount_0, amount_1), &sender)?;
+			Self::deposit_event(Event::LiquidityAdded(
+				token_0,
+				amount_0,
+				token_1,
+				amount_1,
+			));
+			Ok(())
+		}
+	}
+
+	// Internal functions to be used by this pallet
+	impl<T: Config> Pallet<T> {
+		/// Get the balance of a token given an account
+		fn balance(id: AssetIdOf<T>, who: &AccountIdOf<T>) -> BalanceOf<T> {
+			if id == T::NativeTokenId::get() {
+				T::NativeCurrency::total_balance(who)
+			} else {
+				// Otherwise use asset balance
+				T::Tokens::balance(id, &who)
+			}
+		}
+	}
+
+	// Configuration of the DEX state at genesis
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		/// Genesis liquidity pools: ((amount, asset), (amount, asset), liquidity provider)
+		pub liquidity_pools: Vec<((BalanceOf<T>, AssetIdOf<T>), (BalanceOf<T>, AssetIdOf<T>), AccountIdOf<T>)>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self { liquidity_pools: Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+				for (token_0, token_1, sender) in &self.liquidity_pools {
+					let pair = Pair::<T>::new_pair(token_0.1,token_1.1,);
+
+					let new_pool = LiquidityPool::<T>::new_liquidity_pool(pair)
+						.expect("Should be able to create new LiquidityPool during genesis");
+					
+					let pallet_id = T::PalletId::get();
+
+					new_pool.add_liquidity((token_0.0, token_1.0), &pallet_id.into_account_truncating())
+						.expect("Should be able to add liquidity during genesis");
+
+					LiquidityPools::<T>::insert(pair, new_pool);
+				}
+			}
+		}
+	}
