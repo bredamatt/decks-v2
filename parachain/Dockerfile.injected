@@ -19,12 +19,9 @@ RUN apt-get update && \
 	ln -s /data /polkadot/.local/share/polkadot
 
 # add binary to docker image
-COPY ./target/release/parachain-node /usr/local/bin
+COPY ./target/release/parachain-node /usr/local/bin/parachain-node
 
 USER polkadot
-
-# check if executable works in this container
-RUN /usr/local/bin/parachain-node --version
 
 EXPOSE 30333 9933 9944 9615
 VOLUME ["/polkadot"]
