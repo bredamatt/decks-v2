@@ -221,22 +221,22 @@ fn testnet_genesis(
 		assets: {
 			AssetsConfig {
 				assets: vec![
-					(1u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
-					(2u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
-					(3u8, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
+					(1u32, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
+					(2u32, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
+					(3u32, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1),
 				],
 				metadata: vec![
-					(1u8, b"TOKEN_A".to_vec(), b"TKA".to_vec(), 8u8),
-					(2u8, b"TOKEN_B".to_vec(), b"TKB".to_vec(), 8u8),
-					(3u8, b"TOKA_TOKB".to_vec(), b"TAB".to_vec(), 8u8),
+					(1u32, b"TOKEN_A".to_vec(), b"TKA".to_vec(), 8u8),
+					(2u32, b"TOKEN_B".to_vec(), b"TKB".to_vec(), 8u8),
+					(3u32, b"TOKA_TOKB".to_vec(), b"TAB".to_vec(), 8u8),
 				],
 				accounts: vec![
-					(1u8, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
-					(1u8, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
-					(2u8, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
-					(2u8, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
-					(3u8, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
-					(3u8, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
+					(1u32, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
+					(1u32, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
+					(2u32, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
+					(2u32, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
+					(3u32, get_account_id_from_seed::<sr25519::Public>("Alice"), 1_000_000),
+					(3u32, get_account_id_from_seed::<sr25519::Public>("Bob"), 1_000_000),
 				],
 			}
 		},
