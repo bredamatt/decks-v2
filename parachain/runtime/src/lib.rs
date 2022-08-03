@@ -469,7 +469,7 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
-	type AssetId = u8;
+	type AssetId = u32;
 	type Currency = Balances;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
@@ -481,6 +481,27 @@ impl pallet_assets::Config for Runtime {
 	type Extra = ();
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const Decks: PalletId = PalletId(*b"dotdecks");
+	pub const TokenMinimumBalance: u32 = 1; // Must be greater than 0 (existential deposit)
+	pub const TokenDecimals: u8 = 12;
+}
+
+impl pallet_dex::Config for Runtime {
+	type Event = Event;
+	type AssetId = u32;
+	type Tokens = Assets;
+	type PalletId = Decks;
+	type LpTokenMinimumBalance = TokenMinimumBalance;
+	type LpTokenDecimals = TokenDecimals;
+	type NativeCurrency = Balances;
+	type NativeTokenId = ();
+	
+	fn exists(id: Self::AssetId) -> bool {
+		Assets::maybe_total_supply(id).is_some()
+	}
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -517,6 +538,9 @@ construct_runtime!(
 
 		// Assets
 		Assets: pallet_assets = 51,
+
+		// Dex
+		Dex: pallet_dex::{Pallet, Call, Storage, Event<T>} = 52,
 	}
 );
 
