@@ -75,6 +75,11 @@ cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", de
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.26" }
 parachain-info = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.26" }
 
+
+# My pallets
+pallet-dex = { path = "../pallets/dex", default-features = false }
+pallet-kitties = { path = "../pallets/kitties", default-features = false }
+
 [features]
 default = [
 	"std",
@@ -125,6 +130,8 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 	"pallet-assets/std",
+	"pallet-dex/std",
+	"pallet-kitties/std",
 ]
 
 runtime-benchmarks = [
